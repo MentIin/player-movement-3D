@@ -3,66 +3,66 @@
 public class PlayerMovement : MonoBehaviour
 {
     
-    public float Speed = 5f;
+    [SerializeField]private float _speed = 5f;
     
     [SerializeField] private Transform groundChecker;
     public Joystick joystick;
 
-    public float JumpForce = 300f;
+    [SerializeField]private float _jumpPower = 3f;
     
     private bool _isGrounded;
-    private Rigidbody _rb;
-    [HideInInspector] public bool isJumping = false;
+    private CharacterController _characterController;
+    private bool _isJumping = false;
     
     [HideInInspector] public int numOfSeers=0;
 
+    private Vector3 _playerVelocity = Vector3.zero;
+    private Vector3 _gravityValue = Physics.gravity / 3;
+
     void Start()
     {
-        _rb = GetComponent<Rigidbody>();
+        _characterController = GetComponent<CharacterController>();
 
     }
 
     
     private void Update()
     {
-        IsGroundedUpdate();
         Movement();
+        _isJumping = false;
     }
     
 
 
     private void Movement()
     {
+
+        _isGrounded = _characterController.isGrounded;
+        if (_isGrounded && _playerVelocity.y < 0)
+        {
+            _playerVelocity.y = 0f;
+        }
+        
         float moveHorizontal = joystick.Horizontal;
         float moveVertical = joystick.Vertical;
-        Vector3 movement = new Vector3(moveHorizontal, 0f, moveVertical);
+        Vector3 movement =transform.forward * moveVertical + transform.right * moveHorizontal;
         
-        transform.Translate(movement * Speed * Time.deltaTime);
+        _characterController.Move( movement * _speed *Time.deltaTime);
+        
+        if (_isJumping && _isGrounded)
+        {
+            _playerVelocity.y += Mathf.Sqrt(_jumpPower * -1.0f * _gravityValue.y);
+        }
+        _playerVelocity.y += _gravityValue.y * Time.deltaTime;
+
+        _characterController.Move(_playerVelocity);
     }
 
     public void Jump()
     {
-        if (_isGrounded)
-            {
-                _rb.AddForce(Vector3.up * JumpForce, ForceMode.Impulse);
-            }
+        _isJumping = true;
     }
     
-
-    private void IsGroundedUpdate()
-    {
-        RaycastHit[] hits = Physics.SphereCastAll(groundChecker.position, 0.1f, Vector3.down, 0.1f);
-
-        foreach (var item in hits)
-        {
-            if ( item.collider.CompareTag("Ground"))
-            {
-                _isGrounded = true;
-                return;
-            }
-        }
-        _isGrounded = false;
-
-    }
+    
     
 }
